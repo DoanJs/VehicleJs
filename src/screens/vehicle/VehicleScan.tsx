@@ -10,7 +10,7 @@ import {
 import { db, functions } from "../../firebase.config";
 import { VehicleModel } from "../../models";
 
-type VehicleStatus = "available" | "borrowed";
+type VehicleStatus = "available" | "borrowed" | "maintenance";
 type ActionType = "borrow" | "return" | "refuel" | null;
 
 export default function VehicleScan() {
@@ -53,6 +53,11 @@ export default function VehicleScan() {
           status: data.status || "available",
           currentKm: data.currentKm || 0,
           imageUrl: data.imageUrl || "",
+          type: data.type || "",
+
+          borrowedByName: data.borrowedByName || "",
+          borrowedById: data.borrowedById || "",
+          borrowedReason: data.borrowedReason || "",
 
           createdAt: data.createAt || Date.now(),
           updatedAt: data.updateAt || Date.now(),
