@@ -74,7 +74,7 @@ export default function VehicleScan() {
   }, [id]);
 
   const getStatusText = (status: VehicleStatus) => {
-    return status === "available" ? "Đang rảnh" : "Đang được mượn";
+    return status === "available" ? "Đang rảnh" : "Đang dùng";
   };
 
   const getStatusColor = (status: VehicleStatus) => {
@@ -225,13 +225,13 @@ export default function VehicleScan() {
                   </span>
                 </div>
                 <div className="mt-2 fs-5">
-                  Người mượn:{" "}
+                  Người dùng:{" "}
                   <span
                     style={{
                       fontWeight: 700,
                     }}
                   >
-                    Nguyễn Văn A
+                    {vehicle.borrowedByName}
                   </span>
                 </div>
               </div>

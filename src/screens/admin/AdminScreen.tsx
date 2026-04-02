@@ -4,7 +4,7 @@ import { Logout } from "iconsax-react";
 import { ChevronLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { SpinnerComponent } from "../../components";
+import { LoadingOverlay, SpinnerComponent } from "../../components";
 import { getDocsData } from "../../constants/firebase/getDocsData";
 import {
   handleToastError,
@@ -17,9 +17,10 @@ import VehicleItem from "../vehicle/VehicleItem";
 
 export default function AdminScreen() {
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingOverlay, setLoadingOverlay] = useState(false);
   const navigate = useNavigate();
-  const { vehicles, setVehicles } = useVehicleStore();
-  const { borrowReqs, setBorrowReqs } = useclearBorrowReqStore();
+  const { vehicles, setVehicles, editVehicle } = useVehicleStore();
+  const { borrowReqs, setBorrowReqs, editBorrowReq } = useclearBorrowReqStore();
   const stats = [
     {
       title: "Tổng Số Xe",
@@ -65,6 +66,62 @@ export default function AdminScreen() {
     } catch (error) {
       handleToastError("Đăng xuất tài khoản thất bại !");
       console.error("Error signing out:", error);
+    }
+  };
+  const handleApprove = async (item: any) => {
+    setLoadingOverlay(true);
+    try {
+      const approveBorrowRequest = httpsCallable(
+        functions,
+        "approveBorrowRequest",
+      );
+
+      const res: any = await approveBorrowRequest({
+        requestId: item.id,
+      });
+
+      setLoadingOverlay(false);
+      editBorrowReq(item.id, { ...item, status: "approved" });
+      const vehicleIndex = vehicles.findIndex((v) => v.id === item.vehicleId);
+      editVehicle(item.vehicleId, {
+        ...vehicles[vehicleIndex],
+        status: "borrowed",
+        borrowedByName: item.requestedByName,
+      });
+      handleToastSuccess(res.data.message);
+
+      console.log("approve success:", res.data);
+    } catch (error: any) {
+      setLoadingOverlay(false);
+      console.error("approve error:", error);
+      const message = error?.message || "Có lỗi xảy ra";
+
+      handleToastError(message);
+    }
+  };
+  const handleReject = async (item: any) => {
+    setLoadingOverlay(true);
+    try {
+      const rejectBorrowRequest = httpsCallable(
+        functions,
+        "rejectBorrowRequest",
+      );
+
+      const res: any = await rejectBorrowRequest({
+        requestId: item.id,
+      });
+
+      setLoadingOverlay(false);
+      editBorrowReq(item.id, { ...item, status: "rejected" });
+      handleToastSuccess(res.data.message);
+
+      console.log("reject success:", res.data);
+    } catch (error: any) {
+      setLoadingOverlay(false);
+      console.error("reject error:", error);
+      const message = error?.message || "Có lỗi xảy ra";
+
+      handleToastError(message);
     }
   };
 
@@ -171,29 +228,6 @@ export default function AdminScreen() {
   //     date: "06/04/2024",
   //   },
   // ];
-
-  const handleApprove = async (item: any) => {
-    try {
-      const approveBorrowRequest = httpsCallable(
-        functions,
-        "approveBorrowRequest",
-      );
-
-      const res = await approveBorrowRequest({
-        requestId: item.id,
-      });
-
-      console.log("approve success:", res.data);
-      alert("Duyệt yêu cầu thành công");
-    } catch (error: any) {
-      console.error("approve error:", error);
-      alert(error.message || "Có lỗi xảy ra");
-    }
-  };
-  const handleReject = (item: any) => {
-    console.log("TỪ CHỐI", item);
-  };
-
   return (
     <div className="bg-light min-vh-100 py-4">
       <div className="container-fluid" style={{ maxWidth: "1400px" }}>
@@ -296,7 +330,7 @@ export default function AdminScreen() {
 
                       <tbody>
                         {vehicles.map((item, ind) => (
-                          <VehicleItem item={item} index={ind} key={ind}/>
+                          <VehicleItem item={item} index={ind} key={ind} />
                         ))}
                       </tbody>
                     </table>
@@ -305,7 +339,7 @@ export default function AdminScreen() {
               </div>
 
               {/* BÊN PHẢI: DANH SÁCH YÊU CẦU */}
-              <div className="col-12 col-xl-4">
+              <div className="col-12 col-xl-4" >
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h2 className="h4 mb-0 fw-bold">Yêu cầu cần xử lý</h2>
@@ -313,7 +347,7 @@ export default function AdminScreen() {
                       {borrowReqs.filter((v) => v.status === "pending").length}
                     </span>
                   </div>
-                  <div className="card-body p-0">
+                  <div className="card-body p-0" style={{ overflowY: 'scroll', height: '50%'}} >
                     {borrowReqs.filter((v) => v.status === "pending").length >
                     0 ? (
                       <div className="list-group list-group-flush">
@@ -424,6 +458,8 @@ export default function AdminScreen() {
           </div>
         </div>
       </div>
+
+      <LoadingOverlay show={loadingOverlay} />
     </div>
   );
 }
