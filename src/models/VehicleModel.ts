@@ -9,6 +9,9 @@ export interface VehicleModel {
   status: "available" | "borrowed" | "maintenance";
   imageUrl: string;
   currentKm: string;
+  
+  fuelLevel: "empty" | "quarter" | "half" | "three_quarters" | "full";
+  cleanStatus: "clean" | "normal" | "dirty";
 
   borrowedByName: string
   borrowedById: string

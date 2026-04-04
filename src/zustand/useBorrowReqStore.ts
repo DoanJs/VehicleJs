@@ -12,7 +12,7 @@ interface BorrowReqState {
   clearBorrowReqs: () => void;
 }
 
-const useclearBorrowReqStore = create<BorrowReqState>((set) => ({
+const useBorrowReqStore = create<BorrowReqState>((set) => ({
   borrowReqs: [],
   loading: false,
   error: null,
@@ -33,4 +33,4 @@ const useclearBorrowReqStore = create<BorrowReqState>((set) => ({
   clearBorrowReqs: () => set({ borrowReqs: [] }),
 }));
 
-export default useclearBorrowReqStore;
+export default useBorrowReqStore;

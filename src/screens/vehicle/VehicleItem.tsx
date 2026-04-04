@@ -1,7 +1,11 @@
 import { Link } from "react-router-dom";
 import { VehicleModel } from "../../models";
 
-export default function VehicleItem({ item, index }: { item: VehicleModel, index: number }) {
+export default function VehicleItem({
+  item,
+}: {
+  item: VehicleModel;
+}) {
   const getBadgeClass = (status: string) => {
     switch (status) {
       case "borrowed":
@@ -17,12 +21,22 @@ export default function VehicleItem({ item, index }: { item: VehicleModel, index
 
   return (
     <tr key={`${item.name}-${item.plate}`}>
-      <th>{index + 1}</th>
       <td className="fw-semibold">
         <Link to={"/"}>{item.name}</Link>
       </td>
       <td>{item.plate}</td>
       <td>{item.currentKm}</td>
+      <td>
+        {item.fuelLevel === "full"
+          ? "Đầy"
+          : item.fuelLevel === "three_quarters"
+            ? "3/4"
+            : item.fuelLevel === "half"
+              ? "1/2"
+              : item.fuelLevel === "quarter"
+                ? "1/4"
+                : "Hết"}
+      </td>
 
       <td>
         <span

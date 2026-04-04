@@ -2,25 +2,36 @@ import { signOut } from "firebase/auth";
 import { httpsCallable } from "firebase/functions";
 import { Logout } from "iconsax-react";
 import { ChevronLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LoadingOverlay, SpinnerComponent } from "../../components";
-import { getDocsData } from "../../constants/firebase/getDocsData";
 import {
   handleToastError,
   handleToastSuccess,
 } from "../../constants/handleToast";
 import { auth, functions } from "../../firebase.config";
-import { useVehicleStore } from "../../zustand";
-import useclearBorrowReqStore from "../../zustand/useBorrowReqStore";
+import {
+  useBorrowReqStore,
+  useRefuelReqStore,
+  useReturnReqStore,
+  useVehicleStore,
+} from "../../zustand";
 import VehicleItem from "../vehicle/VehicleItem";
 
 export default function AdminScreen() {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingOverlay, setLoadingOverlay] = useState(false);
-  const navigate = useNavigate();
-  const { vehicles, setVehicles, editVehicle } = useVehicleStore();
-  const { borrowReqs, setBorrowReqs, editBorrowReq } = useclearBorrowReqStore();
+  const { vehicles } = useVehicleStore();
+  const { borrowReqs } = useBorrowReqStore();
+  const { returnReqs } = useReturnReqStore();
+  const { refuelReqs } = useRefuelReqStore();
+
+  const rejectFunctionMap: Record<string, string> = {
+    borrow: "rejectBorrowRequest",
+    return: "rejectReturnRequest",
+    refuel: "rejectRefuelRequest",
+  };
   const stats = [
     {
       title: "Tổng Số Xe",
@@ -41,19 +52,7 @@ export default function AdminScreen() {
       bg: "danger",
     },
   ];
-
-  useEffect(() => {
-    getDocsData({
-      nameCollect: "vehicles",
-      condition: [],
-      setData: setVehicles,
-    });
-    getDocsData({
-      nameCollect: "borrow_requests",
-      condition: [],
-      setData: setBorrowReqs,
-    });
-  }, []);
+  const requests = [...borrowReqs, ...returnReqs, ...refuelReqs];
 
   const handleLogout = async () => {
     setIsLoading(true);
@@ -70,164 +69,68 @@ export default function AdminScreen() {
   };
   const handleApprove = async (item: any) => {
     setLoadingOverlay(true);
+
     try {
-      const approveBorrowRequest = httpsCallable(
-        functions,
-        "approveBorrowRequest",
-      );
+      let functionName = "";
 
-      const res: any = await approveBorrowRequest({
-        requestId: item.id,
-      });
+      switch (item.type) {
+        case "borrow":
+          functionName = "approveBorrowRequest";
+          break;
+        case "return":
+          functionName = "approveReturnRequest";
+          break;
+        case "refuel":
+          functionName = "approveRefuelRequest";
+          break;
+        default:
+          throw new Error("Loại yêu cầu không hợp lệ.");
+      }
 
-      setLoadingOverlay(false);
-      editBorrowReq(item.id, { ...item, status: "approved" });
-      const vehicleIndex = vehicles.findIndex((v) => v.id === item.vehicleId);
-      editVehicle(item.vehicleId, {
-        ...vehicles[vehicleIndex],
-        status: "borrowed",
-        borrowedByName: item.requestedByName,
-      });
+      const callable = httpsCallable(functions, functionName);
+      const res: any = await callable({ requestId: item.id });
+
       handleToastSuccess(res.data.message);
-
       console.log("approve success:", res.data);
     } catch (error: any) {
-      setLoadingOverlay(false);
       console.error("approve error:", error);
       const message = error?.message || "Có lỗi xảy ra";
-
       handleToastError(message);
+    } finally {
+      setLoadingOverlay(false);
     }
   };
   const handleReject = async (item: any) => {
     setLoadingOverlay(true);
-    try {
-      const rejectBorrowRequest = httpsCallable(
-        functions,
-        "rejectBorrowRequest",
-      );
 
-      const res: any = await rejectBorrowRequest({
+    try {
+      const functionName = rejectFunctionMap[item.type];
+
+      if (!functionName) {
+        throw new Error("Loại yêu cầu không hợp lệ.");
+      }
+
+      const callable = httpsCallable(functions, functionName);
+
+      const res: any = await callable({
         requestId: item.id,
       });
 
-      setLoadingOverlay(false);
-      editBorrowReq(item.id, { ...item, status: "rejected" });
-      handleToastSuccess(res.data.message);
+      // KHÔNG cần update Zustand ở đây
+      // onSnapshot sẽ tự cập nhật lại state
 
+      handleToastSuccess(res.data.message);
       console.log("reject success:", res.data);
     } catch (error: any) {
-      setLoadingOverlay(false);
       console.error("reject error:", error);
       const message = error?.message || "Có lỗi xảy ra";
-
       handleToastError(message);
+    } finally {
+      setLoadingOverlay(false);
     }
   };
 
-  // ------------------------
-  // const vehicles = [
-  //   {
-  //     id: "V001",
-  //     name: "Xe Sirius 29A1",
-  //     plate: "567.89",
-  //     status: "Đang Sử Dụng",
-  //     currentUser: "Nguyễn Văn A",
-  //     pendingRequest: {
-  //       type: "return",
-  //       label: "Yêu cầu trả xe",
-  //       requestedBy: "Nguyễn Văn A",
-  //       time: "08/04/2024 10:30",
-  //     },
-  //   },
-  //   {
-  //     id: "V002",
-  //     name: "Xe Honda City",
-  //     plate: "30H-45678",
-  //     status: "Đang Rảnh",
-  //     currentUser: "Trống",
-  //     pendingRequest: {
-  //       type: "borrow",
-  //       label: "Yêu cầu mượn xe",
-  //       requestedBy: "Trần Thị Bích",
-  //       time: "08/04/2024 09:00",
-  //     },
-  //   },
-  //   {
-  //     id: "V003",
-  //     name: "Xe Vision",
-  //     plate: "51F2-12345",
-  //     status: "Đang Sử Dụng",
-  //     currentUser: "Trống",
-  //     pendingRequest: {
-  //       type: "fuel",
-  //       label: "Yêu cầu đổ xăng",
-  //       requestedBy: "Lê Văn Cường",
-  //       time: "08/04/2024 11:15",
-  //     },
-  //   },
-  //   {
-  //     id: "V004",
-  //     name: "Xe Wave Alpha",
-  //     plate: "59K1-67890",
-  //     status: "Đang Bảo Trì",
-  //     currentUser: "Trống",
-  //     pendingRequest: null,
-  //   },
-  //   {
-  //     id: "V005",
-  //     name: "Xe tải Ford Ranger",
-  //     plate: "51D-11223",
-  //     status: "Đang Bảo Trì",
-  //     currentUser: "Trống",
-  //     pendingRequest: null,
-  //   },
-  // ];
 
-  // const histories = [
-  //   {
-  //     employee: "Nguyễn Văn A",
-  //     vehicle: "Xe Honda City",
-  //     plate: "30H-45678",
-  //     time: "08/04/2024 8:00 - 08/04/2024 12:00",
-  //   },
-  //   {
-  //     employee: "Trần Thị Bích",
-  //     vehicle: "Xe Sirius 29A1",
-  //     plate: "29A1",
-  //     time: "07/04/2024 10:30 - 07/04/2024 13:00",
-  //   },
-  //   {
-  //     employee: "Lê Văn Cường",
-  //     vehicle: "Xe Vision",
-  //     plate: "51F2-12345",
-  //     time: "06/04/2024 9:00 - 06/04/2024 11:00",
-  //   },
-  // ];
-
-  // const fuelLogs = [
-  //   {
-  //     vehicle: "Xe Honda City",
-  //     employee: "Nguyễn Văn A",
-  //     liters: "20 L",
-  //     cost: "500,000 đ",
-  //     date: "08/04/2024",
-  //   },
-  //   {
-  //     vehicle: "Xe Wave Alpha",
-  //     employee: "Trần Thị Bích",
-  //     liters: "5 L",
-  //     cost: "100,000 đ",
-  //     date: "07/04/2024",
-  //   },
-  //   {
-  //     vehicle: "Xe Tải Ranger",
-  //     employee: "Lê Văn Cường",
-  //     liters: "30 L",
-  //     cost: "900,000 đ",
-  //     date: "06/04/2024",
-  //   },
-  // ];
   return (
     <div className="bg-light min-vh-100 py-4">
       <div className="container-fluid" style={{ maxWidth: "1400px" }}>
@@ -318,10 +221,10 @@ export default function AdminScreen() {
                     <table className="table table-hover align-middle mb-0">
                       <thead className="table-light">
                         <tr>
-                          <th>STT</th>
                           <th>Xe</th>
                           <th>Biển Số</th>
                           <th>Số Km</th>
+                          <th>Xăng</th>
                           <th>Trạng Thái</th>
                           <th>Người Dùng</th>
                           <th>Mục Đích</th>
@@ -330,7 +233,7 @@ export default function AdminScreen() {
 
                       <tbody>
                         {vehicles.map((item, ind) => (
-                          <VehicleItem item={item} index={ind} key={ind} />
+                          <VehicleItem item={item} key={ind} />
                         ))}
                       </tbody>
                     </table>
@@ -339,19 +242,22 @@ export default function AdminScreen() {
               </div>
 
               {/* BÊN PHẢI: DANH SÁCH YÊU CẦU */}
-              <div className="col-12 col-xl-4" >
+              <div className="col-12 col-xl-4">
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-header bg-white py-3 d-flex justify-content-between align-items-center">
                     <h2 className="h4 mb-0 fw-bold">Yêu cầu cần xử lý</h2>
                     <span className="badge text-bg-primary">
-                      {borrowReqs.filter((v) => v.status === "pending").length}
+                      {requests.filter((v) => v.status === "pending").length}
                     </span>
                   </div>
-                  <div className="card-body p-0" style={{ overflowY: 'scroll', height: '50%'}} >
-                    {borrowReqs.filter((v) => v.status === "pending").length >
+                  <div
+                    className="card-body p-0"
+                    style={{ overflowY: "scroll", height: "50%" }}
+                  >
+                    {requests.filter((v) => v.status === "pending").length >
                     0 ? (
                       <div className="list-group list-group-flush">
-                        {[...borrowReqs]
+                        {requests
                           .filter((v) => v.status === "pending")
                           .map((item) => (
                             <div

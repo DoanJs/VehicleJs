@@ -3,11 +3,11 @@ import { TimeAtModel } from ".";
 
 export interface BorrowReqModel {
   id: string;
-  type: string
+ type: "borrow" | "return" | "refuel";
   plate: string;
   requestedByName: string
   requestedByUid: string
-  status: "pending" | "approved" | "reject";
+  status: "pending" | "approved" | "rejected";
   vehicleId: string;
   vehicleName: string
 
