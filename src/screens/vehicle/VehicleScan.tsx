@@ -88,10 +88,10 @@ export default function VehicleScan() {
     return status === "available" ? "#198754" : "#dc3545";
   };
 
-  const getActionTitle = () => {
-    if (selectedAction === "borrow") return "GỬI YÊU CẦU MƯỢN XE";
-    return "";
-  };
+  // const getActionTitle = () => {
+  //   if (selectedAction === "borrow") return "GỬI YÊU CẦU MƯỢN XE";
+  //   return "";
+  // };
 
   const getActionQuestion = () => {
     if (selectedAction === "borrow")

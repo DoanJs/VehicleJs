@@ -1,16 +1,13 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { ChevronLeft, RotateCcw, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import {
+  handleToastError,
+  handleToastSuccess,
+} from "../../constants/handleToast";
 import { db, functions } from "../../firebase.config";
-import { httpsCallable } from "firebase/functions";
-import { handleToastError, handleToastSuccess } from "../../constants/handleToast";
 
 type Vehicle = {
   id: string;
