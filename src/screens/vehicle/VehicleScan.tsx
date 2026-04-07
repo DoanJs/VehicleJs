@@ -195,22 +195,28 @@ export default function VehicleScan() {
   if (!vehicle) return null;
 
   return (
-    <div className="vh-100 d-flex justify-content-center align-items-center bg-light">
+    <div className="min-vh-100 d-flex justify-content-center align-items-center bg-light py-3">
       <div
-        className="bg-white border shadow-sm"
-        style={{ width: 400, minHeight: 560 }}
+        className="bg-white border shadow-sm overflow-hidden"
+        style={{
+          width: 400,
+          minHeight: 560,
+          maxWidth: "100%",
+        }}
       >
         <div
           className="d-flex align-items-center px-3 text-white fw-semibold"
           style={{
             backgroundColor: "#1565c0",
-            height: 52,
+            minHeight: 52,
+            paddingTop: "max(12px, env(safe-area-inset-top))",
+            paddingBottom: 12,
             cursor: "pointer",
           }}
           onClick={() => navigate("/")}
         >
-          <ChevronLeft size={24} className="me-2" />
-          Quét lại
+          <ChevronLeft size={24} className="me-2 flex-shrink-0" />
+          <span>Quét lại</span>
         </div>
 
         <div className="p-3">
@@ -273,13 +279,10 @@ export default function VehicleScan() {
                     {getStatusText(vehicle.status)}
                   </span>
                 </div>
+
                 <div className="mt-2 fs-5">
                   Người dùng:{" "}
-                  <span
-                    style={{
-                      fontWeight: 700,
-                    }}
-                  >
+                  <span style={{ fontWeight: 700 }}>
                     {vehicle.borrowedByName}
                   </span>
                 </div>
@@ -290,13 +293,12 @@ export default function VehicleScan() {
           <div className="border-top mt-4 pt-4 text-center">
             <div className="fw-bold fs-4 mb-4">Bạn muốn làm gì?</div>
 
-            {/* Mượn xe */}
             {vehicle.status === "available" && (
               <button
                 className="btn w-100 text-white fw-bold fs-3 mb-3 d-flex align-items-center justify-content-center"
                 style={{
                   backgroundColor: "#dc3545",
-                  height: 56,
+                  minHeight: 56,
                 }}
                 onClick={() => {
                   setBorrowReason("");
@@ -309,14 +311,13 @@ export default function VehicleScan() {
               </button>
             )}
 
-            {/* Trả xe */}
             {vehicle.status === "borrowed" &&
               vehicle.borrowedById === user?.id && (
                 <button
                   className="btn w-100 text-white fw-bold fs-3 mb-3 d-flex align-items-center justify-content-center"
                   style={{
                     backgroundColor: "#198754",
-                    height: 56,
+                    minHeight: 56,
                   }}
                   onClick={() => navigate(`/vehicleReturnScreen/${vehicle.id}`)}
                 >
@@ -325,12 +326,11 @@ export default function VehicleScan() {
                 </button>
               )}
 
-            {/* Đỗ xăng */}
             <button
               className="btn w-100 text-white fw-bold fs-3 d-flex align-items-center justify-content-center"
               style={{
                 backgroundColor: "#f0a500",
-                height: 56,
+                minHeight: 56,
                 opacity: vehicle.fuelLevel === "full" ? 0.3 : 1,
                 cursor:
                   vehicle.fuelLevel === "full" ? "not-allowed" : "pointer",
@@ -354,102 +354,103 @@ export default function VehicleScan() {
       </div>
 
       {selectedAction === "borrow" && (
-        <>
-          <div
-            className="modal fade show"
-            style={{ display: "block", backgroundColor: "rgba(0,0,0,0.35)" }}
-          >
-            <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content" style={{ borderRadius: 0 }}>
-                <div
-                  className="d-flex align-items-center px-3"
-                  style={{ backgroundColor: "#1565c0", height: 52 }}
+        <div
+          className="modal fade show"
+          style={{ display: "block", backgroundColor: "rgba(0,0,0,0.35)" }}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content" style={{ borderRadius: 0 }}>
+              <div
+                className="d-flex align-items-center px-3"
+                style={{
+                  backgroundColor: "#1565c0",
+                  minHeight: 52,
+                  paddingTop: "max(12px, env(safe-area-inset-top))",
+                  paddingBottom: 12,
+                }}
+              >
+                <button
+                  className="btn btn-link text-white p-0 border-0"
+                  onClick={() => {
+                    setBorrowReason("");
+                    setBorrowReasonError("");
+                    setSelectedAction(null);
+                  }}
                 >
-                  <button
-                    className="btn btn-link text-white p-0 border-0"
-                    onClick={() => {
-                      setBorrowReason("");
-                      setBorrowReasonError("");
-                      setSelectedAction(null);
-                    }}
-                  >
-                    <ChevronLeft size={28} />
-                  </button>
+                  <ChevronLeft size={28} />
+                </button>
+              </div>
+
+              <div className="border-top pt-4">
+                <div className="fs-5 mb-4 text-center">
+                  {getActionQuestion()}
                 </div>
 
-                <div className="border-top pt-4">
-                  <div className="fs-5 mb-4 text-center">
-                    {getActionQuestion()}
-                  </div>
-
-                  <div className="fw-bold fs-4 text-primary text-center">
-                    XE: {vehicle.name.toUpperCase()}
-                  </div>
-
-                  <div className="fs-5 mt-3 text-center">
-                    Biển số: <b>{vehicle.plate}</b>
-                  </div>
-
-                  <div className="mt-4 px-4">
-                    <label className="form-label fw-semibold fs-5">
-                      Mục đích mượn xe <span className="text-danger">*</span>
-                    </label>
-                    <textarea
-                      className={`form-control ${borrowReasonError ? "is-invalid" : ""}`}
-                      rows={4}
-                      placeholder="Ví dụ: Đi công tác, gặp khách hàng, xử lý công việc tại cơ sở..."
-                      value={borrowReason}
-                      onChange={(e) => {
-                        setBorrowReason(e.target.value);
-                        if (borrowReasonError) {
-                          setBorrowReasonError("");
-                        }
-                      }}
-                      maxLength={250}
-                      disabled={submitting}
-                    />
-
-                    {borrowReasonError && (
-                      <div className="invalid-feedback d-block">
-                        {borrowReasonError}
-                      </div>
-                    )}
-
-                    <div className="text-muted small mt-1 text-end">
-                      {borrowReason.trim().length}/250
-                    </div>
-                  </div>
+                <div className="fw-bold fs-4 text-primary text-center">
+                  XE: {vehicle.name.toUpperCase()}
                 </div>
 
-                <div className="modal-footer border-top-0 px-4 pb-4">
-                  <button
-                    className="btn btn-outline-secondary px-4"
-                    onClick={() => {
-                      setBorrowReason("");
-                      setBorrowReasonError("");
-                      setSelectedAction(null);
+                <div className="fs-5 mt-3 text-center">
+                  Biển số: <b>{vehicle.plate}</b>
+                </div>
+
+                <div className="mt-4 px-4">
+                  <label className="form-label fw-semibold fs-5">
+                    Mục đích mượn xe <span className="text-danger">*</span>
+                  </label>
+                  <textarea
+                    className={`form-control ${borrowReasonError ? "is-invalid" : ""}`}
+                    rows={4}
+                    placeholder="Ví dụ: Đi công tác, gặp khách hàng, xử lý công việc tại cơ sở..."
+                    value={borrowReason}
+                    onChange={(e) => {
+                      setBorrowReason(e.target.value);
+                      if (borrowReasonError) setBorrowReasonError("");
                     }}
+                    maxLength={250}
                     disabled={submitting}
-                  >
-                    Hủy
-                  </button>
+                  />
 
-                  <button
-                    className="btn btn-primary px-4"
-                    onClick={handleSubmitBorrowRequest}
-                    disabled={
-                      submitting ||
-                      !borrowReason.trim() ||
-                      borrowReason.trim().length < 5
-                    }
-                  >
-                    {submitting ? "Đang xử lý..." : "Xác nhận"}
-                  </button>
+                  {borrowReasonError && (
+                    <div className="invalid-feedback d-block">
+                      {borrowReasonError}
+                    </div>
+                  )}
+
+                  <div className="text-muted small mt-1 text-end">
+                    {borrowReason.trim().length}/250
+                  </div>
                 </div>
+              </div>
+
+              <div className="modal-footer border-top-0 px-4 pb-4">
+                <button
+                  className="btn btn-outline-secondary px-4"
+                  onClick={() => {
+                    setBorrowReason("");
+                    setBorrowReasonError("");
+                    setSelectedAction(null);
+                  }}
+                  disabled={submitting}
+                >
+                  Hủy
+                </button>
+
+                <button
+                  className="btn btn-primary px-4"
+                  onClick={handleSubmitBorrowRequest}
+                  disabled={
+                    submitting ||
+                    !borrowReason.trim() ||
+                    borrowReason.trim().length < 5
+                  }
+                >
+                  {submitting ? "Đang xử lý..." : "Xác nhận"}
+                </button>
               </div>
             </div>
           </div>
-        </>
+        </div>
       )}
     </div>
   );
