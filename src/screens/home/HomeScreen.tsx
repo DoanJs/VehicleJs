@@ -139,7 +139,7 @@ export default function HomeScreen() {
 
         <div className="text-center py-3 border-bottom">
           <h6 className="fw-bold text-uppercase m-0 text-primary">
-            Quản lý xe nội bộ
+            Quản lý xe nội bộ _ V0.1.14 _ Completed
           </h6>
         </div>
 

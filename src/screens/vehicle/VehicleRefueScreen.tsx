@@ -1,24 +1,23 @@
-import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
 import { ChevronLeft, RotateCcw, Send } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { db } from "../../firebase.config";
+import {
+  handleToastError,
+  handleToastSuccess,
+} from "../../constants/handleToast";
+import { db, functions } from "../../firebase.config";
 
 type Vehicle = {
   id: string;
   name: string;
   plate: string;
-  status: "available" | "borrowed";
+  status: "available" | "borrowed" | "rejected";
   currentKm?: number;
   imageUrl?: string;
 };
-
+type FuelLevel = "full" | "three_quarters" | "half" | "empty" | "quarter";
 
 export default function VehicleRefueScreen() {
   const { id } = useParams();
@@ -29,7 +28,8 @@ export default function VehicleRefueScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const [currentKm, setCurrentKm] = useState("");
+  const [previousFuelLevel, setPreviousFuelLevel] = useState<FuelLevel>("full");
+  const [fuelLevel, setFuelLevel] = useState<FuelLevel>("full");
   const [liters, setLiters] = useState("");
   const [note, setNote] = useState("");
 
@@ -61,12 +61,11 @@ export default function VehicleRefueScreen() {
           name: data.name || "",
           plate: data.plate || "",
           status: data.status || "available",
-          currentKm: data.currentKm || 0,
           imageUrl: data.imageUrl || "",
         };
 
         setVehicle(nextVehicle);
-        setCurrentKm(String(nextVehicle.currentKm || ""));
+        setPreviousFuelLevel(data.fuelLevel);
       } catch (err) {
         console.error(err);
         setError("Không thể tải dữ liệu xe.");
@@ -81,9 +80,6 @@ export default function VehicleRefueScreen() {
   const validateForm = () => {
     if (!vehicle) return "Không có dữ liệu xe.";
 
-    if (!currentKm.trim()) return "Vui lòng nhập số km hiện tại.";
-    if (Number.isNaN(Number(currentKm))) return "Số km không hợp lệ.";
-
     if (!liters.trim()) return "Vui lòng nhập số lít xăng.";
     if (Number.isNaN(Number(liters)) || Number(liters) <= 0) {
       return "Số lít xăng không hợp lệ.";
@@ -94,7 +90,7 @@ export default function VehicleRefueScreen() {
     return "";
   };
 
-  const handleSubmitRefuel = async () => {
+  const handleSubmitRefuelRequest = async () => {
     const validationError = validateForm();
     if (validationError) {
       setError(validationError);
@@ -107,28 +103,28 @@ export default function VehicleRefueScreen() {
       setSubmitting(true);
       setError("");
 
-      await addDoc(collection(db, "refuel_requests"), {
+      const submitRefuelRequest = httpsCallable(
+        functions,
+        "submitRefuelRequest",
+      );
+
+      const res: any = await submitRefuelRequest({
         vehicleId: vehicle.id,
-        vehicleName: vehicle.name,
-        plate: vehicle.plate,
-        currentKm: Number(currentKm),
+        fuelLevel,
         liters: Number(liters),
         note: note.trim(),
-        status: "pending",
-        createdAt: serverTimestamp(),
       });
 
-      navigate(`/refuelVehicleSuccess/${vehicle.id}`, {
-        state: {
-          vehicleName: vehicle.name,
-          plate: vehicle.plate,
-          currentKm: Number(currentKm),
-          liters: Number(liters),
-        },
-      });
-    } catch (err) {
+      handleToastSuccess(res.data.message);
+
+      navigate(`/vehicleScan/${vehicle.id}`);
+    } catch (err: any) {
       console.error(err);
-      setError("Không gửi được yêu cầu đổ xăng.");
+
+      const message =
+        err?.message || "Không gửi được yêu cầu đổ xăng. Vui lòng thử lại.";
+
+      handleToastError(message);
     } finally {
       setSubmitting(false);
     }
@@ -262,16 +258,67 @@ export default function VehicleRefueScreen() {
           </div>
 
           <div className="mb-3">
-            <label className="form-label fw-semibold">Số km hiện tại</label>
-            <div className="input-group">
-              <input
-                type="number"
-                className="form-control"
-                value={currentKm}
-                onChange={(e) => setCurrentKm(e.target.value)}
-                placeholder="Nhập số km hiện tại"
-              />
-              <span className="input-group-text">km</span>
+            <label className="form-label fw-semibold">Mức xăng trước đổ</label>
+            <div className="row g-2">
+              <div className="col-2">
+                {renderOptionButton(previousFuelLevel === "full", "Đầy", () =>
+                  setPreviousFuelLevel("full"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(
+                  previousFuelLevel === "three_quarters",
+                  "3/4",
+                  () => setPreviousFuelLevel("three_quarters"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(previousFuelLevel === "half", "1/2", () =>
+                  setPreviousFuelLevel("half"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(
+                  previousFuelLevel === "quarter",
+                  "1/4",
+                  () => setPreviousFuelLevel("quarter"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(previousFuelLevel === "empty", "Hết", () =>
+                  setPreviousFuelLevel("empty"),
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="mb-3">
+            <label className="form-label fw-semibold">Mức xăng sau đổ</label>
+            <div className="row g-2">
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "full", "Đầy", () =>
+                  setFuelLevel("full"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "three_quarters", "3/4", () =>
+                  setFuelLevel("three_quarters"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "half", "1/2", () =>
+                  setFuelLevel("half"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "quarter", "1/4", () =>
+                  setFuelLevel("quarter"),
+                )}
+              </div>
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "empty", "Hết", () =>
+                  setFuelLevel("empty"),
+                )}
+              </div>
             </div>
           </div>
 
@@ -320,7 +367,7 @@ export default function VehicleRefueScreen() {
           <button
             className="btn w-100 text-white fw-bold mb-2"
             style={{ backgroundColor: "#f0a500", height: 52 }}
-            onClick={handleSubmitRefuel}
+            onClick={handleSubmitRefuelRequest}
             disabled={submitting}
           >
             <Send size={18} className="me-2" />

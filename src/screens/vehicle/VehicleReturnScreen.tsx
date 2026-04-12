@@ -1,16 +1,15 @@
+import { doc, getDoc } from "firebase/firestore";
+import { httpsCallable } from "firebase/functions";
+import { ChevronLeft, RotateCcw, Send } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ChevronLeft, Send, RotateCcw } from "lucide-react";
 import {
-  addDoc,
-  collection,
-  doc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
-import { db } from "../../firebase.config";
+  handleToastError,
+  handleToastSuccess,
+} from "../../constants/handleToast";
+import { db, functions } from "../../firebase.config";
 
-type FuelLevel = "full" | "almost_full" | "low" | "empty";
+type FuelLevel = "full" | "three_quarters" | "half" | "empty" | "quarter";
 type CleanStatus = "clean" | "dirty";
 
 type Vehicle = {
@@ -22,7 +21,7 @@ type Vehicle = {
   borrowedAt?: any;
   borrowedByName?: string;
   borrowedFuelLevel?: FuelLevel;
-  imageUrl: string
+  imageUrl: string;
 };
 
 export default function VehicleReturnScreen() {
@@ -71,7 +70,7 @@ export default function VehicleReturnScreen() {
           borrowedAt: data.borrowedAt || null,
           borrowedByName: data.borrowedByName || "Chưa có thông tin",
           borrowedFuelLevel: data.borrowedFuelLevel || "full",
-          imageUrl: data.imageUrl || ''
+          imageUrl: data.imageUrl || "",
         };
 
         setVehicle(nextVehicle);
@@ -95,18 +94,6 @@ export default function VehicleReturnScreen() {
     return current - before;
   }, [currentKm, vehicle?.currentKm]);
 
-  const fuelLabelMap: Record<FuelLevel, string> = {
-    full: "Đầy",
-    almost_full: "Gần đầy",
-    low: "Còn ít",
-    empty: "Hết",
-  };
-
-  const cleanLabelMap: Record<CleanStatus, string> = {
-    clean: "Sạch",
-    dirty: "Bẩn",
-  };
-
   const validateForm = () => {
     if (!vehicle) return "Không có dữ liệu xe.";
     if (!currentKm.trim()) return "Vui lòng nhập số km hiện tại.";
@@ -120,7 +107,6 @@ export default function VehicleReturnScreen() {
     if (note.length > 200) return "Ghi chú tối đa 200 ký tự.";
     return "";
   };
-
   const handleSubmitReturnRequest = async () => {
     const validationError = validateForm();
     if (validationError) {
@@ -134,37 +120,31 @@ export default function VehicleReturnScreen() {
       setSubmitting(true);
       setError("");
 
-      await addDoc(collection(db, "return_requests"), {
+      const submitReturnRequest = httpsCallable(
+        functions,
+        "submitReturnRequest",
+      );
+
+      const res: any = await submitReturnRequest({
         vehicleId: vehicle.id,
-        vehicleName: vehicle.name,
-        plate: vehicle.plate,
         currentKm: Number(currentKm),
-        kmIncrease: kmDiff,
         fuelLevel,
         cleanStatus,
         note: note.trim(),
-        status: "pending",
-        createdAt: serverTimestamp(),
       });
-
-      navigate(`/returnVehicleSuccess/${vehicle.id}`, {
-        state: {
-          vehicleName: vehicle.name,
-          plate: vehicle.plate,
-          currentKm: Number(currentKm),
-          kmIncrease: kmDiff,
-          fuelLevelLabel: fuelLabelMap[fuelLevel],
-          cleanStatusLabel: cleanLabelMap[cleanStatus],
-        },
-      });
-    } catch (err) {
+      handleToastSuccess(res.data.message);
+      navigate(`/vehicleScan/${vehicle.id}`);
+    } catch (err: any) {
       console.error(err);
-      setError("Không gửi được yêu cầu trả xe.");
+
+      const message =
+        err?.message || "Không gửi được yêu cầu trả xe. Vui lòng thử lại.";
+
+      handleToastError(message);
     } finally {
       setSubmitting(false);
     }
   };
-
   const renderOptionButton = (
     active: boolean,
     label: string,
@@ -249,7 +229,7 @@ export default function VehicleReturnScreen() {
             <div className="row g-3 align-items-center">
               <div className="col-4">
                 <div
-                  className="w-100 bg-light rounded border overflow-hidden d-flex align-items-center justify-content-center"
+                  className="w-100 bg-light rounded border overfhalf-hidden d-flex align-items-center justify-content-center"
                   style={{ height: 90 }}
                 >
                   {vehicle.imageUrl ? (
@@ -281,12 +261,12 @@ export default function VehicleReturnScreen() {
                       padding: "8px 12px",
                     }}
                   >
-                    Đang được sử dụng
+                    Đang dùng
                   </span>
                 </div>
 
                 <div className="text-muted mt-2" style={{ fontSize: 14 }}>
-                  Người mượn: {vehicle.borrowedByName}
+                  Người dùng: {vehicle.borrowedByName}
                 </div>
               </div>
             </div>
@@ -318,24 +298,27 @@ export default function VehicleReturnScreen() {
           <div className="mb-3">
             <label className="form-label fw-semibold">Mức xăng hiện tại</label>
             <div className="row g-2">
-              <div className="col-6 col-md-3">
+              <div className="col-2">
                 {renderOptionButton(fuelLevel === "full", "Đầy", () =>
                   setFuelLevel("full"),
                 )}
               </div>
-              <div className="col-6 col-md-3">
-                {renderOptionButton(
-                  fuelLevel === "almost_full",
-                  "Gần đầy",
-                  () => setFuelLevel("almost_full"),
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "three_quarters", "3/4", () =>
+                  setFuelLevel("three_quarters"),
                 )}
               </div>
-              <div className="col-6 col-md-3">
-                {renderOptionButton(fuelLevel === "low", "Còn ít", () =>
-                  setFuelLevel("low"),
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "half", "1/2", () =>
+                  setFuelLevel("half"),
                 )}
               </div>
-              <div className="col-6 col-md-3">
+              <div className="col-2">
+                {renderOptionButton(fuelLevel === "quarter", "1/4", () =>
+                  setFuelLevel("quarter"),
+                )}
+              </div>
+              <div className="col-2">
                 {renderOptionButton(fuelLevel === "empty", "Hết", () =>
                   setFuelLevel("empty"),
                 )}

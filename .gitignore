@@ -10,6 +10,16 @@
 
 # production
 /build
+/dist
+node_modules/
+dist/
+build/
+release/
+out/
+*.exe
+*.msi
+*.blockmap
+latest.yml
 
 # misc
 .DS_Store

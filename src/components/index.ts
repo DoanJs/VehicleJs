@@ -1,7 +1,15 @@
-import SpinnerComponent from "./SpinnerComponent";
-import SectionComponent from "./SectionComponent";
+import LoadingOverlay from "./LoadingOverLay";
 import RowComponent from "./RowComponent";
-import TextComponent from "./TextComponent";
+import SectionComponent from "./SectionComponent";
 import SpaceComponent from "./SpaceComponent";
+import SpinnerComponent from "./SpinnerComponent";
+import TextComponent from "./TextComponent";
 
-export { SpinnerComponent, SectionComponent, RowComponent , TextComponent, SpaceComponent};
+export {
+  LoadingOverlay,
+  RowComponent,
+  SectionComponent,
+  SpaceComponent,
+  SpinnerComponent,
+  TextComponent,
+};

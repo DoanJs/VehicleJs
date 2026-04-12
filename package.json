@@ -1,8 +1,11 @@
 {
   "name": "vehiclejs",
-  "version": "0.1.0",
+  "version": "0.1.14",
   "private": true,
+  "main": "electron.js",
+  "homepage": "./",
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -13,6 +16,8 @@
     "@types/react-dom": "^19.2.3",
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.8.3",
     "firebase": "^12.11.0",
     "html5-qrcode": "^2.3.8",
     "iconsax-react": "^0.0.8",
@@ -28,9 +33,43 @@
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "react-build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "electron": "electron .",
+    "dev": "concurrently \"npm start\" \"wait-on http://localhost:3000 && electron .\"",
+    "dist": "npm run react-build && electron-builder --win --publish always"
+  },
+  "build": {
+    "appId": "com.vehiclejs.app",
+    "productName": "VehicleJS",
+    "extraMetadata": {
+      "main": "electron.js"
+    },
+    "files": [
+      "build/**/*",
+      "electron.js",
+      "preload.js",
+      "package.json"
+    ],
+    "directories": {
+      "buildResources": "public"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "public/vehicleicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "DoanJs",
+        "repo": "VehicleJs"
+      }
+    ]
   },
   "eslintConfig": {
     "extends": [
@@ -49,5 +88,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "wait-on": "^9.0.5"
   }
 }

@@ -17,6 +17,8 @@ import {
 } from "./screens";
 import VehicleScan from "./screens/vehicle/VehicleScan";
 import { useUserStore } from "./zustand";
+import UpdateToast from "./components/UpdateToast";
+import "react-toastify/dist/ReactToastify.css";
 // import { handleToastWarn } from "./constants/handleToast";
 
 type AuthState = {
@@ -65,6 +67,17 @@ export default function App() {
 
   return (
     <div>
+      <UpdateToast />
+      <ToastContainer
+        position="bottom-right"
+        style={{ width: 340 }}   // 👈 fix width
+        newestOnTop
+        closeOnClick={false}
+        pauseOnHover
+        draggable={false}
+        theme="light"
+      />
+      
       <Routes>
         <Route
           path="/login"
@@ -106,45 +119,3 @@ export default function App() {
     </div>
   );
 }
-
-{
-  /* <Route path="vehicleDetails/:id" element={<VehicleDetails />}>
-          <Route path="profile" element={<ProfileScreen />} />
-          <Route
-          path="admin"
-          element={
-            authState.user && ['52LPPcC0ejgAWSEoWhWBCT8KHsm2'].includes(authState.user.uid ) ? (
-              <AdminScreen />
-            ) : (
-              <Navigate to="/" replace />
-            )
-          }
-        />
-        {/* <Route path="home/:id" element={<Navbar />}>
-          <Route path="profile" element={<ProfileScreen />} />
-          <Route path="bank" element={<BankScreen />} />
-          <Route path="target" element={<TargetComponent />} />
-          <Route path="plan" element={<PlanScreen />} />
-          <Route path="planList" element={<PlanListComponent />} />
-          <Route path="report" element={<ReportScreen />} />
-          <Route path="reportList" element={<ReportListComponent />} />
-          <Route path="addReport" element={<AddReportScreen />} />
-          <Route path="pending" element={<PendingScreen />} />
-          <Route path="pendingList" element={<PendingListComponent />} />
-          <Route path="callover" element={<CalloverScreen />} />
-          <Route path="media" element={<MediaScreen />} />
-          <Route path="setting" element={<SettingScreen />} />
-          <Route path="cart" element={<CartScreen />} />
-          {/* <Route path="admin" element={<AdminScreen />} /> */
-}
-//   <Route
-//   path="admin"
-//   element={
-//     authState.user && ['52LPPcC0ejgAWSEoWhWBCT8KHsm2'].includes(authState.user.uid ) ? (
-//       <AdminScreen />
-//     ) : (
-//       <Navigate to="/" replace />
-//     )
-//   }
-// /> */}
-// </Route> */}
